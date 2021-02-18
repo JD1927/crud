@@ -5,13 +5,23 @@ import { v4 as uuid } from 'uuid';
 function App() {
   const [task, setTask] = useState('');
   const [tasks, setTasks] = useState([]);
+  const [editMode, setEditMode] = useState(false);
+  const [id, setId] = useState('');
+  const [error, setError] = useState(undefined);
 
-  const addTask = (e) => {
-    e.preventDefault();
+  const hasValidForm = () => {
+    let isValid = true;
+    setError(undefined);
     if (isEmpty(task)) {
-      console.log('Task empty');
-      return;
+      setError('You must enter a value.');
+      isValid = false;
     }
+    return isValid;
+  }
+
+  const handleAddTask = (e) => {
+    e.preventDefault();
+    if (!hasValidForm(task)) { return; }
     const newTask = {
       id: uuid(),
       name: task,
@@ -28,54 +38,79 @@ function App() {
     setTasks([...newTasks]);
   };
 
+  const handleEditTask = (item) => {
+    setTask(item.name);
+    setEditMode(true);
+    setError(undefined);
+    setId(item.id);
+  };
+
+  const handleSaveTask = (e) => {
+    e.preventDefault();
+    if (!hasValidForm(task)) { return; }
+
+    const editedTasks = tasks.map((item) => item.id === id ? { id, name: task } : item);
+
+    setEditMode(false);
+    setTasks([...editedTasks]);
+    setTask('');
+    setId('');
+  }
+
   return (
-    <div className="container mt-5">
+    <div className='container mt-5'>
       <h1>TO-DO</h1>
       <hr />
-      <div className="row">
-        <div className="col-8">
-          <h2 className="text-center">Tasks</h2>
-          {
-            size(tasks) > 0 ? (
-              <ul className="list-group">
-              {tasks.map((task) => (
-                <li className="list-group-item" key={task?.id}>
-                  <span className="lead">{task?.name}</span>
+      <div className='row'>
+        <div className='col-8'>
+          <h2 className='text-center'>Tasks</h2>
+          {size(tasks) > 0 ? (
+            <ul className='list-group'>
+              {tasks.map((item) => (
+                <li className='list-group-item' key={item?.id}>
+                  <span className='lead'>{item?.name}</span>
                   <button
-                    onClick={() => handleDeleteTask(task.id)}
-                    className="btn btn-sm btn-danger float-right ml-2 rounded-pill"
+                    onClick={() => handleDeleteTask(item?.id)}
+                    className='btn btn-sm btn-danger float-right ml-2 rounded-pill'
                   >
                     Delete
                   </button>
-                  <button className="btn btn-sm btn-warning float-right rounded-pill">
+                  <button
+                    onClick={() => handleEditTask(item)}
+                    className='btn btn-sm btn-warning float-right rounded-pill'
+                  >
                     Edit
                   </button>
                 </li>
               ))}
             </ul>
-            ) : (
-              <div className="jumbotron">
-                <h3 className="display-4 text-center">No scheduled tasks!</h3>
-              </div>
-            )
-            
-          }
+          ) : (
+            <div className='jumbotron'>
+              <h3 className='display-4 text-center'>No scheduled tasks!</h3>
+            </div>
+          )}
         </div>
-        <div className="col-4">
-          <h2 className="text-center">Form</h2>
-          <form onSubmit={addTask}>
+        <div className='col-4'>
+          <h2 className='text-center'>{editMode ? 'Edit Task' : 'Add Task'}</h2>
+          <form onSubmit={ editMode ? handleSaveTask : handleAddTask}>
             <input
-              type="text"
-              className="form-control mb-2"
+              type='text'
+              className='form-control mb-2'
               onChange={handleInputChange}
-              placeholder="Add a task..."
+              placeholder='Add a task...'
               value={task}
             />
+            {
+              error && 
+              <div class="alert alert-danger" role="alert">
+                {error}
+              </div>
+            }
             <button
-              type="submit"
-              className="btn btn-dark btn-block rounded-pill"
+              type='submit'
+              className={editMode ? 'btn btn-warning btn-block rounded-pill':'btn btn-dark btn-block rounded-pill'}
             >
-              Agregar
+              {editMode ? 'Save' : 'Agregar'}
             </button>
           </form>
         </div>
