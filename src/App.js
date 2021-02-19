@@ -1,13 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { isEmpty, size } from 'lodash';
-import { v4 as uuid } from 'uuid';
+import { addDocument, collections, deleteDocumentByID, getCollection, updateDocumentByID } from './actions';
 
 function App() {
+  // Use State Hook
   const [task, setTask] = useState('');
   const [tasks, setTasks] = useState([]);
   const [editMode, setEditMode] = useState(false);
   const [id, setId] = useState('');
   const [error, setError] = useState(undefined);
+
+  // Use Effect Hook
+  useEffect(() => {
+    (async () => {
+      const result = await getCollection(collections?.TASKS);
+
+      if (result?.status) {
+        setTasks([...result?.data]);
+      }
+
+    })();
+  }, []);
+
 
   const hasValidForm = () => {
     let isValid = true;
@@ -19,35 +33,60 @@ function App() {
     return isValid;
   }
 
-  const handleAddTask = (e) => {
+  const handleAddTask = async (e) => {
     e.preventDefault();
     if (!hasValidForm(task)) { return; }
-    const newTask = {
-      id: uuid(),
-      name: task,
-    };
 
-    setTasks([...tasks, newTask]);
+    const result = await addDocument(
+      { 
+        collection: collections?.TASKS,
+        data: { name: task },
+      }
+    );
+
+    if (!result.status) {
+      setError(result.error);
+      return;
+    }
+    const { id } = result?.data;
+    setTasks([...tasks, { id, name: task }]);
     setTask('');
   };
 
   const handleInputChange = (e) => setTask(e.target.value);
 
-  const handleDeleteTask = (id) => {
+  const handleDeleteTask = async (id) => {
+    const result = await deleteDocumentByID({ collection: collections?.TASKS, id });
+
+    if (!result?.status) {
+      setError(result?.error);
+      return;
+    }
     const newTasks = tasks.filter((t) => t.id !== id);
     setTasks([...newTasks]);
   };
 
   const handleEditTask = (item) => {
-    setTask(item.name);
+    setTask(item?.name);
     setEditMode(true);
     setError(undefined);
-    setId(item.id);
+    setId(item?.id);
   };
 
-  const handleSaveTask = (e) => {
+  const handleSaveTask = async (e) => {
     e.preventDefault();
     if (!hasValidForm(task)) { return; }
+
+    const result = await updateDocumentByID({
+      collection: collections?.TASKS,
+      id,
+      data: { name: task },
+    });
+
+    if (!result?.status) {
+      setError(result?.error);
+      return;
+    }
 
     const editedTasks = tasks.map((item) => item.id === id ? { id, name: task } : item);
 
